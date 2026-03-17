@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation\Agents;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;

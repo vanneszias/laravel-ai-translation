@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation\Drivers;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use SensitiveParameter;
 use Statikbe\AiTranslation\Contracts\TranslationDriver;
 use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 
@@ -19,6 +22,7 @@ class LibreTranslateDriver implements TranslationDriver
 {
     public function __construct(
         protected string $url,
+        #[SensitiveParameter]
         protected string $apiKey = '',
         protected int $timeout = 30,
     ) {}
@@ -71,7 +75,7 @@ class LibreTranslateDriver implements TranslationDriver
             'format' => 'text',
         ];
 
-        if (!empty($this->apiKey)) {
+        if ($this->apiKey !== '') {
             $payload['api_key'] = $this->apiKey;
         }
 

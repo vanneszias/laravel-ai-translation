@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation;
 
-use Closure;
 use Illuminate\Support\Manager;
 use InvalidArgumentException;
 use Statikbe\AiTranslation\Contracts\TranslationDriver;
@@ -17,7 +18,7 @@ use Statikbe\AiTranslation\Drivers\NullDriver;
  * Use it like: AiTranslation::driver('libretranslate')->translateBatch([...], 'en', 'nl')
  *
  * Custom drivers can be registered via:
- * AiTranslation::extend('my_driver', function ($app, $config) { return new MyDriver($config); });
+ * AiTranslation::extend('my_driver', fn ($app, $config) => new MyDriver($config));
  */
 class AiTranslationManager extends Manager
 {
@@ -68,16 +69,16 @@ class AiTranslationManager extends Manager
     }
 
     /**
-     * Resolve the global system prompt from config.
+     * Resolve the global system prompt from config, with optional per-group override.
      */
-    protected function resolveSystemPrompt(string $group = null): string
+    protected function resolveSystemPrompt(?string $group = null): string
     {
         $globalPrompt = $this->config->get(
             'ai-translation.prompts.system',
             'You are an expert software UI translator. Preserve all placeholders and HTML tags. Return valid JSON.',
         );
 
-        if ($group) {
+        if ($group !== null) {
             $groupOverride = $this->config->get("ai-translation.prompts.group_overrides.{$group}");
             if ($groupOverride) {
                 return $globalPrompt . "\n\n" . $groupOverride;

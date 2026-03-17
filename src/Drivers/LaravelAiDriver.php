@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation\Drivers;
 
 use Laravel\Ai\Enums\Lab;
@@ -39,7 +41,7 @@ class LaravelAiDriver implements TranslationDriver
 
     public function translateBatch(array $texts, string $from, string $to, array $options = []): array
     {
-        if (empty($texts)) {
+        if ($texts === []) {
             return [];
         }
 
@@ -48,15 +50,11 @@ class LaravelAiDriver implements TranslationDriver
 
         $agent = new TranslationAgent(systemPrompt: $systemPrompt, keys: $keys, from: $from, to: $to);
 
-        // Build the user prompt as a JSON object of key => source text
         $inputJson = json_encode($texts, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         $prompt = "Translate the following strings:\n\n{$inputJson}";
 
         try {
-            $agentInstance = $agent;
-
-            // Apply optional model/provider overrides from config
-            $response = $agentInstance->prompt(
+            $response = $agent->prompt(
                 prompt: $prompt,
                 provider: $this->provider,
                 model: $this->config['model'] ?? null,

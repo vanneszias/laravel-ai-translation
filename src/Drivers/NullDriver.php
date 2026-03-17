@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation\Drivers;
 
 use Statikbe\AiTranslation\Contracts\TranslationDriver;
@@ -17,7 +19,7 @@ class NullDriver implements TranslationDriver
 
     public function translateBatch(array $texts, string $from, string $to, array $options = []): array
     {
-        return array_map(fn() => '', $texts);
+        return array_map(static fn() => '', $texts);
     }
 
     public function getName(): string

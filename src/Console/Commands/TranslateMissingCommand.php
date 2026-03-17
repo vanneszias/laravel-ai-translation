@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -30,7 +32,7 @@ class TranslateMissingCommand extends Command
     public function handle(AiTranslationService $service): int
     {
         $locale = $this->argument('locale');
-        $groups = $this->option('group') ?: [];
+        $groups = $this->option('group') ?? [];
         $driver = $this->option('driver');
         $sync = $this->option('sync') || !config('ai-translation.queue.enabled', true);
         $dryRun = $this->option('dry-run');
@@ -50,18 +52,18 @@ class TranslateMissingCommand extends Command
         $manager = app(\Statikbe\LaravelChainedTranslator\ChainedTranslationManager::class);
         $allGroups = $manager->getTranslationGroups();
 
-        if (!empty($groups)) {
+        if ($groups !== []) {
             $allGroups = array_values(array_intersect($allGroups, $groups));
         }
 
-        if (empty($allGroups)) {
+        if ($allGroups === []) {
             $this->warn('No translation groups found.');
 
             return self::SUCCESS;
         }
 
         $this->info("Translating missing keys for locale: <comment>{$locale}</comment>");
-        $this->info('Source locale: <comment>' . $sourceLocale . '</comment>');
+        $this->info("Source locale: <comment>{$sourceLocale}</comment>");
         $this->info(
             'Driver: <comment>' . ($driver ?? config('ai-translation.default_driver', 'laravel_ai')) . '</comment>',
         );
@@ -74,7 +76,7 @@ class TranslateMissingCommand extends Command
         foreach ($allGroups as $group) {
             $missing = $service->getMissingTranslations($locale, $group);
 
-            if (empty($missing)) {
+            if ($missing === []) {
                 $this->line("  <info>✓</info> {$group} — no missing keys");
                 continue;
             }
@@ -92,21 +94,17 @@ class TranslateMissingCommand extends Command
 
             $this->line("  <comment>→</comment> {$group} — translating {$count} key(s)...");
 
-            $result = $service->translateMissingForGroup(
-                locale: $locale,
-                group: $group,
-                queue: !$sync,
-                driver: $driver,
-            );
-
-            if ($sync) {
-                $translated = count(array_filter($result));
-                $totalTranslated += $translated;
-                $this->line("    <info>✓</info> Translated {$translated}/{$count} keys");
-            } else {
+            if (!$sync) {
+                $service->queueMissingForGroup(locale: $locale, group: $group, driver: $driver);
                 $this->line("    <info>✓</info> Queued {$count} key(s) for group '{$group}'");
                 $totalTranslated += $count;
+                continue;
             }
+
+            $result = $service->translateMissingForGroup(locale: $locale, group: $group, driver: $driver);
+            $translated = count(array_filter($result));
+            $totalTranslated += $translated;
+            $this->line("    <info>✓</info> Translated {$translated}/{$count} keys");
         }
 
         $this->newLine();
@@ -117,11 +115,17 @@ class TranslateMissingCommand extends Command
                 . count($allGroups)
                 . ' group(s) would be translated.',
             );
-        } elseif ($sync) {
-            $this->info("Done: {$totalTranslated}/{$totalMissing} key(s) translated.");
-        } else {
-            $this->info("Done: {$totalTranslated} key(s) queued for translation.");
+
+            return self::SUCCESS;
         }
+
+        if ($sync) {
+            $this->info("Done: {$totalTranslated}/{$totalMissing} key(s) translated.");
+
+            return self::SUCCESS;
+        }
+
+        $this->info("Done: {$totalTranslated} key(s) queued for translation.");
 
         return self::SUCCESS;
     }

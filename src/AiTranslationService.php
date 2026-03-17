@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Statikbe\AiTranslation;
 
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use RuntimeException;
 use Statikbe\AiTranslation\Jobs\TranslateGroupJob;
 
 /**
@@ -55,12 +57,12 @@ class AiTranslationService
     /**
      * Translate a single translation key and optionally persist it via the chained translator.
      *
-     * @param  string  $locale     Target locale.
-     * @param  string  $group      Translation group (e.g. 'auth', 'validation').
-     * @param  string  $key        The dot-notated translation key.
-     * @param  string  $sourceText The source text to translate.
-     * @param  string  $driver     Optional driver override.
-     * @return string              The translated text.
+     * @param  string       $locale      Target locale.
+     * @param  string       $group       Translation group (e.g. 'auth', 'validation').
+     * @param  string       $key         The dot-notated translation key.
+     * @param  string       $sourceText  The source text to translate.
+     * @param  string|null  $driver      Optional driver override.
+     * @return string                    The translated text.
      */
     public function translateKey(
         string $locale,
@@ -79,7 +81,7 @@ class AiTranslationService
             options: ['system_prompt' => $systemPrompt],
         );
 
-        if ($translated && $this->chainedTranslatorIsAvailable()) {
+        if ($translated !== '' && $this->chainedTranslatorIsAvailable()) {
             $this->saveViaChainedTranslator($locale, $group, $key, $translated);
         }
 
@@ -87,33 +89,42 @@ class AiTranslationService
     }
 
     /**
-     * Translate all missing keys for a given locale and group.
+     * Translate all missing keys for a given locale and group, dispatching a queued job.
      *
      * Requires statikbe/laravel-chained-translator to be installed.
      *
-     * @param  string   $locale       Target locale.
-     * @param  string   $group        Translation group.
-     * @param  bool     $queue        Whether to dispatch a queued job.
-     * @param  string|null  $driver   Optional driver override.
-     * @return array<string, string>  The translated key => value map (empty if queued).
+     * @param  string       $locale  Target locale.
+     * @param  string       $group   Translation group.
+     * @param  string|null  $driver  Optional driver override.
      */
-    public function translateMissingForGroup(
-        string $locale,
-        string $group,
-        bool $queue = true,
-        ?string $driver = null,
-    ): array {
+    public function queueMissingForGroup(string $locale, string $group, ?string $driver = null): void
+    {
         $missingTexts = $this->getMissingTranslations($locale, $group);
 
-        if (empty($missingTexts)) {
-            return [];
+        if ($missingTexts === []) {
+            return;
         }
 
-        if ($queue) {
-            TranslateGroupJob::dispatch($locale, $group, $missingTexts, $driver)
-                ->onConnection(config('ai-translation.queue.connection'))
-                ->onQueue(config('ai-translation.queue.queue_name', 'translations'));
+        TranslateGroupJob::dispatch($locale, $group, $missingTexts, $driver)
+            ->onConnection(config('ai-translation.queue.connection'))
+            ->onQueue(config('ai-translation.queue.queue_name', 'translations'));
+    }
 
+    /**
+     * Translate all missing keys for a given locale and group synchronously.
+     *
+     * Requires statikbe/laravel-chained-translator to be installed.
+     *
+     * @param  string       $locale  Target locale.
+     * @param  string       $group   Translation group.
+     * @param  string|null  $driver  Optional driver override.
+     * @return array<string, string> The translated key => value map.
+     */
+    public function translateMissingForGroup(string $locale, string $group, ?string $driver = null): array
+    {
+        $missingTexts = $this->getMissingTranslations($locale, $group);
+
+        if ($missingTexts === []) {
             return [];
         }
 
@@ -121,37 +132,59 @@ class AiTranslationService
     }
 
     /**
-     * Translate all missing keys for a given locale across all groups.
+     * Queue all missing translation keys for a given locale across all groups.
      *
      * Requires statikbe/laravel-chained-translator to be installed.
      *
-     * @param  string      $locale   Target locale.
-     * @param  array       $groups   Limit to specific groups (empty = all groups).
-     * @param  bool        $queue    Whether to dispatch queued jobs per group.
-     * @param  string|null $driver   Optional driver override.
+     * @param  string       $locale   Target locale.
+     * @param  array        $groups   Limit to specific groups (empty = all groups).
+     * @param  string|null  $driver   Optional driver override.
      */
-    public function translateMissingForLocale(
-        string $locale,
-        array $groups = [],
-        bool $queue = true,
-        ?string $driver = null,
-    ): void {
+    public function queueMissingForLocale(string $locale, array $groups = [], ?string $driver = null): void
+    {
+        foreach ($this->resolveGroups($locale, $groups) as $group) {
+            $this->queueMissingForGroup($locale, $group, $driver);
+        }
+    }
+
+    /**
+     * Synchronously translate all missing keys for a given locale across all groups.
+     *
+     * Requires statikbe/laravel-chained-translator to be installed.
+     *
+     * @param  string       $locale   Target locale.
+     * @param  array        $groups   Limit to specific groups (empty = all groups).
+     * @param  string|null  $driver   Optional driver override.
+     */
+    public function translateMissingForLocale(string $locale, array $groups = [], ?string $driver = null): void
+    {
+        foreach ($this->resolveGroups($locale, $groups) as $group) {
+            $this->translateMissingForGroup($locale, $group, $driver);
+        }
+    }
+
+    /**
+     * Resolve and filter the translation groups for a locale operation.
+     *
+     * @param  array  $filterGroups  Limit to specific groups (empty = all groups).
+     * @return array<string>
+     */
+    protected function resolveGroups(string $locale, array $filterGroups = []): array
+    {
         if (!$this->chainedTranslatorIsAvailable()) {
-            throw new \RuntimeException(
-                'translateMissingForLocale() requires statikbe/laravel-chained-translator. '
+            throw new RuntimeException(
+                'This operation requires statikbe/laravel-chained-translator. '
                 . 'Install it with: composer require statikbe/laravel-chained-translator',
             );
         }
 
         $allGroups = $this->getChainedTranslationManager()->getTranslationGroups();
 
-        if (!empty($groups)) {
-            $allGroups = array_intersect($allGroups, $groups);
+        if ($filterGroups === []) {
+            return $allGroups;
         }
 
-        foreach ($allGroups as $group) {
-            $this->translateMissingForGroup($locale, $group, $queue, $driver);
-        }
+        return array_values(array_intersect($allGroups, $filterGroups));
     }
 
     /**
@@ -181,12 +214,13 @@ class AiTranslationService
             options: ['system_prompt' => $systemPrompt],
         );
 
-        // Persist each translated key via the chained translator
         if ($this->chainedTranslatorIsAvailable()) {
             foreach ($translated as $key => $value) {
-                if (!empty($value)) {
-                    $this->saveViaChainedTranslator($locale, $group, $key, $value);
+                if ($value === '') {
+                    continue;
                 }
+
+                $this->saveViaChainedTranslator($locale, $group, $key, $value);
             }
         }
 
@@ -213,13 +247,13 @@ class AiTranslationService
 
         $missing = [];
         foreach ($sourceTranslations as $key => $value) {
-            if (
-                !isset($existingTranslations[$key])
-                || $existingTranslations[$key] === ''
-                || $existingTranslations[$key] === null
-            ) {
-                $missing[$key] = $value;
+            $existing = $existingTranslations[$key] ?? null;
+
+            if ($existing !== null && $existing !== '') {
+                continue;
             }
+
+            $missing[$key] = $value;
         }
 
         return $missing;
