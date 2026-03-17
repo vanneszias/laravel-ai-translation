@@ -1,0 +1,67 @@
+{
+    "name": "statikbe/laravel-ai-translation",
+    "description": "A modular AI translation gateway for Laravel — supports laravel/ai (LLMs) and LibreTranslate, integrates with statikbe/laravel-chained-translator.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Statik.be",
+            "email": "info@statik.be"
+        }
+    ],
+    "keywords": [
+        "laravel",
+        "ai",
+        "translation",
+        "i18n",
+        "llm",
+        "libretranslate",
+        "statikbe"
+    ],
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0|^12.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "laravel/ai": "^0.3",
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0"
+    },
+    "suggest": {
+        "laravel/ai": "Required for the laravel_ai driver (LLM-based translation via OpenAI, Anthropic, Gemini, etc.)",
+        "statikbe/laravel-chained-translator": "Required for the Artisan translate command to discover and save translations"
+    },
+    "autoload": {
+        "psr-4": {
+            "Statikbe\\AiTranslation\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Statikbe\\AiTranslation\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Statikbe\\AiTranslation\\AiTranslationServiceProvider"
+            ],
+            "aliases": {
+                "AiTranslation": "Statikbe\\AiTranslation\\Facades\\AiTranslation"
+            }
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "test-coverage": "pest --coverage"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
