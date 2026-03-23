@@ -38,7 +38,7 @@ class AiTranslationManager extends Manager
         $config = $this->config->get('ai-translation.drivers.laravel_ai', []);
         $systemPrompt = $this->resolveSystemPrompt();
 
-        if (!class_exists(\Laravel\Ai\Contracts\Agent::class)) {
+        if (!interface_exists(\Laravel\Ai\Contracts\Agent::class)) {
             throw new InvalidArgumentException('The laravel_ai translation driver requires the laravel/ai package. '
             . 'Install it with: composer require laravel/ai');
         }

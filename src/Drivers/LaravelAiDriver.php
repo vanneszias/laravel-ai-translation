@@ -14,7 +14,7 @@ use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
  *
  * Uses the official laravel/ai package to translate strings via LLMs.
  * Supports all providers available in laravel/ai: OpenAI, Anthropic,
- * Gemini, Ollama, Groq, Mistral, DeepSeek, xAI, Azure, Perplexity.
+ * Gemini, Ollama, Groq, Mistral, DeepSeek, xAI, Azure.
  *
  * For batch translation, sends all keys in one structured-output LLM call
  * and parses the response back into a key => translation map.
@@ -92,9 +92,8 @@ class LaravelAiDriver implements TranslationDriver
             'mistral' => Lab::Mistral,
             'ollama' => Lab::Ollama,
             'deepseek' => Lab::DeepSeek,
-            'xai' => Lab::XAI,
+            'xai' => Lab::xAI,
             'azure' => Lab::Azure,
-            'perplexity' => Lab::Perplexity,
         ];
 
         return $map[strtolower($provider)] ?? $provider;
