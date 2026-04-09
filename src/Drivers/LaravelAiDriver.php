@@ -4,39 +4,41 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation\Drivers;
 
-use Laravel\Ai\Enums\Lab;
+use Illuminate\Support\Str;
 use Statikbe\AiTranslation\Agents\TranslationAgent;
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
 use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 
 /**
  * Laravel AI SDK driver.
  *
  * Uses the official laravel/ai package to translate strings via LLMs.
- * Supports all providers available in laravel/ai: OpenAI, Anthropic,
- * Gemini, Ollama, Groq, Mistral, DeepSeek, xAI, Azure.
+ * The provider string is passed directly to laravel/ai (e.g. 'openai',
+ * 'anthropic', 'gemini') — no hardcoded mapping is maintained here so
+ * the list stays in sync with whatever laravel/ai supports.
  *
  * For batch translation, sends all keys in one structured-output LLM call
  * and parses the response back into a key => translation map.
  *
  * @requires laravel/ai ^0.3
  */
-class LaravelAiDriver implements TranslationDriver
+class LaravelAiDriver implements AiTranslationDriver
 {
-    protected Lab|string $provider;
+    protected string $provider;
 
     public function __construct(
         protected array $config,
         protected string $systemPrompt,
     ) {
-        $this->provider = $this->resolveProvider($config['provider'] ?? 'openai');
+        $this->provider = $config['provider'] ?? 'openai';
     }
 
     public function translate(string $text, string $from, string $to, array $options = []): string
     {
-        $results = $this->translateBatch(['__single__' => $text], $from, $to, $options);
+        $key = Str::uuid()->toString();
+        $results = $this->translateBatch([$key => $text], $from, $to, $options);
 
-        return $results['__single__'] ?? '';
+        return $results[$key] ?? '';
     }
 
     public function translateBatch(array $texts, string $from, string $to, array $options = []): array
@@ -76,26 +78,8 @@ class LaravelAiDriver implements TranslationDriver
         }
     }
 
-    public function getName(): string
+    public static function getName(): string
     {
         return 'laravel_ai';
-    }
-
-    protected function resolveProvider(string $provider): Lab|string
-    {
-        // Map common provider string names to the Laravel\Ai\Enums\Lab enum
-        $map = [
-            'openai' => Lab::OpenAI,
-            'anthropic' => Lab::Anthropic,
-            'gemini' => Lab::Gemini,
-            'groq' => Lab::Groq,
-            'mistral' => Lab::Mistral,
-            'ollama' => Lab::Ollama,
-            'deepseek' => Lab::DeepSeek,
-            'xai' => Lab::xAI,
-            'azure' => Lab::Azure,
-        ];
-
-        return $map[strtolower($provider)] ?? $provider;
     }
 }

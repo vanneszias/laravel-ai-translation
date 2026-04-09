@@ -15,6 +15,7 @@ class AiTranslationServiceProvider extends PackageServiceProvider
         $package
             ->name('ai-translation')
             ->hasConfigFile('ai-translation')
+            ->hasViews()
             ->hasCommands([
                 TranslateMissingCommand::class,
             ]);

@@ -123,12 +123,18 @@ return [
 
         /*
          * Per-group system prompt overrides.
-         * Use the translation group name as the key to provide a more specific
-         * prompt for that group (e.g., legal text, marketing copy, etc.).
+         * Use the translation group name as the key. By default the override is
+         * appended to the global prompt. Set 'replace' => true to use the override
+         * as the entire system prompt instead.
          *
-         * Example:
-         * 'validation' => 'You are translating Laravel form validation error messages. Keep them concise and user-friendly.',
-         * 'emails'     => 'You are translating marketing email content. Use a warm, professional tone.',
+         * Simple append (string):
+         *   'validation' => 'Keep validation messages concise and user-friendly.',
+         *
+         * Full replacement (array):
+         *   'emails' => [
+         *       'prompt'  => 'You are translating marketing email content. Use a warm, professional tone.',
+         *       'replace' => true,
+         *   ],
          */
         'group_overrides' => [
             // 'validation' => 'Keep validation messages concise and clear.',

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Statikbe\AiTranslation;
 
 use Illuminate\Support\Manager;
-use InvalidArgumentException;
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
+use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 use Statikbe\AiTranslation\Drivers\LaravelAiDriver;
 use Statikbe\AiTranslation\Drivers\LibreTranslateDriver;
 use Statikbe\AiTranslation\Drivers\NullDriver;
@@ -33,14 +33,16 @@ class AiTranslationManager extends Manager
     /**
      * Create the laravel_ai driver (requires laravel/ai).
      */
-    protected function createLaravelAiDriver(): TranslationDriver
+    protected function createLaravelAiDriver(): AiTranslationDriver
     {
         $config = $this->config->get('ai-translation.drivers.laravel_ai', []);
         $systemPrompt = $this->resolveSystemPrompt();
 
         if (!interface_exists(\Laravel\Ai\Contracts\Agent::class)) {
-            throw new InvalidArgumentException('The laravel_ai translation driver requires the laravel/ai package. '
-            . 'Install it with: composer require laravel/ai');
+            throw new TranslationDriverException(
+                'The laravel_ai translation driver requires the laravel/ai package. '
+                . 'Install it with: composer require laravel/ai',
+            );
         }
 
         return new LaravelAiDriver($config, $systemPrompt);
@@ -49,7 +51,7 @@ class AiTranslationManager extends Manager
     /**
      * Create the libretranslate driver.
      */
-    protected function createLibretranslateDriver(): TranslationDriver
+    protected function createLibretranslateDriver(): AiTranslationDriver
     {
         $config = $this->config->get('ai-translation.drivers.libretranslate', []);
 
@@ -63,24 +65,33 @@ class AiTranslationManager extends Manager
     /**
      * Create the null driver (testing / no-op).
      */
-    protected function createNullDriver(): TranslationDriver
+    protected function createNullDriver(): AiTranslationDriver
     {
         return new NullDriver();
     }
 
     /**
      * Resolve the global system prompt from config, with optional per-group override.
+     *
+     * A group override can be a plain string (appended to the global prompt) or an
+     * array with 'prompt' and 'replace' => true keys (replaces the global prompt entirely).
      */
     protected function resolveSystemPrompt(?string $group = null): string
     {
-        $globalPrompt = $this->config->get(
-            'ai-translation.prompts.system',
-            'You are an expert software UI translator. Preserve all placeholders and HTML tags. Return valid JSON.',
-        );
+        $globalPrompt = $this->config->get('ai-translation.prompts.system')
+            ?? trim(view('ai-translation::prompts.system')->render());
 
         if ($group !== null) {
             $groupOverride = $this->config->get("ai-translation.prompts.group_overrides.{$group}");
-            if ($groupOverride) {
+
+            if (is_array($groupOverride)) {
+                $overrideText = $groupOverride['prompt'] ?? '';
+                $replace = (bool) ($groupOverride['replace'] ?? false);
+
+                if ($overrideText !== '') {
+                    return $replace ? $overrideText : $globalPrompt . "\n\n" . $overrideText;
+                }
+            } elseif (is_string($groupOverride) && $groupOverride !== '') {
                 return $globalPrompt . "\n\n" . $groupOverride;
             }
         }

@@ -71,7 +71,7 @@ class AiTranslationService
         string $sourceText,
         ?string $driver = null,
     ): string {
-        $sourceLocale = config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale = config('ai-translation.source_locale');
         $systemPrompt = $this->manager->getSystemPromptForGroup($group);
 
         $translated = $this->manager->driver($driver)->translate(
@@ -97,9 +97,9 @@ class AiTranslationService
      * @param  string       $group   Translation group.
      * @param  string|null  $driver  Optional driver override.
      */
-    public function queueMissingForGroup(string $locale, string $group, ?string $driver = null): void
+    public function queueMissingForGroup(string $locale, string $group, ?string $driver = null, ?string $sourceLocale = null): void
     {
-        $missingTexts = $this->getMissingTranslations($locale, $group);
+        $missingTexts = $this->getMissingTranslations($locale, $group, $sourceLocale);
 
         if ($missingTexts === []) {
             return;
@@ -120,15 +120,15 @@ class AiTranslationService
      * @param  string|null  $driver  Optional driver override.
      * @return array<string, string> The translated key => value map.
      */
-    public function translateMissingForGroup(string $locale, string $group, ?string $driver = null): array
+    public function translateMissingForGroup(string $locale, string $group, ?string $driver = null, ?string $sourceLocale = null): array
     {
-        $missingTexts = $this->getMissingTranslations($locale, $group);
+        $missingTexts = $this->getMissingTranslations($locale, $group, $sourceLocale);
 
         if ($missingTexts === []) {
             return [];
         }
 
-        return $this->translateGroupSync($locale, $group, $missingTexts, $driver);
+        return $this->translateGroupSync($locale, $group, $missingTexts, $driver, $sourceLocale);
     }
 
     /**
@@ -140,10 +140,10 @@ class AiTranslationService
      * @param  array        $groups   Limit to specific groups (empty = all groups).
      * @param  string|null  $driver   Optional driver override.
      */
-    public function queueMissingForLocale(string $locale, array $groups = [], ?string $driver = null): void
+    public function queueMissingForLocale(string $locale, array $groups = [], ?string $driver = null, ?string $sourceLocale = null): void
     {
         foreach ($this->resolveGroups($locale, $groups) as $group) {
-            $this->queueMissingForGroup($locale, $group, $driver);
+            $this->queueMissingForGroup($locale, $group, $driver, $sourceLocale);
         }
     }
 
@@ -156,10 +156,10 @@ class AiTranslationService
      * @param  array        $groups   Limit to specific groups (empty = all groups).
      * @param  string|null  $driver   Optional driver override.
      */
-    public function translateMissingForLocale(string $locale, array $groups = [], ?string $driver = null): void
+    public function translateMissingForLocale(string $locale, array $groups = [], ?string $driver = null, ?string $sourceLocale = null): void
     {
         foreach ($this->resolveGroups($locale, $groups) as $group) {
-            $this->translateMissingForGroup($locale, $group, $driver);
+            $this->translateMissingForGroup($locale, $group, $driver, $sourceLocale);
         }
     }
 
@@ -169,7 +169,7 @@ class AiTranslationService
      * @param  array  $filterGroups  Limit to specific groups (empty = all groups).
      * @return array<string>
      */
-    protected function resolveGroups(string $locale, array $filterGroups = []): array
+    public function resolveGroups(string $locale, array $filterGroups = []): array
     {
         if (!$this->chainedTranslatorIsAvailable()) {
             throw new RuntimeException(
@@ -203,8 +203,9 @@ class AiTranslationService
         string $group,
         array $missingTexts,
         ?string $driver = null,
+        ?string $sourceLocale = null,
     ): array {
-        $sourceLocale = config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale ??= config('ai-translation.source_locale');
         $systemPrompt = $this->manager->getSystemPromptForGroup($group);
 
         $translated = $this->manager->driver($driver)->translateBatch(
@@ -233,14 +234,14 @@ class AiTranslationService
      *
      * @return array<string, string>
      */
-    public function getMissingTranslations(string $locale, string $group): array
+    public function getMissingTranslations(string $locale, string $group, ?string $sourceLocale = null): array
     {
         if (!$this->chainedTranslatorIsAvailable()) {
             return [];
         }
 
         $manager = $this->getChainedTranslationManager();
-        $sourceLocale = config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale ??= config('ai-translation.source_locale');
 
         $sourceTranslations = $manager->getTranslationsForGroup($sourceLocale, $group);
         $existingTranslations = $manager->getTranslationsForGroup($locale, $group);

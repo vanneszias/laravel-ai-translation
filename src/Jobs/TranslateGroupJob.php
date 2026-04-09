@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Statikbe\AiTranslation\AiTranslationService;
 
 /**
@@ -29,7 +30,7 @@ class TranslateGroupJob implements ShouldQueue
     /**
      * The number of seconds to wait before retrying the job.
      */
-    public int $retryAfter;
+    public int $backoff;
 
     /**
      * @param  string                 $locale        Target locale.
@@ -43,8 +44,8 @@ class TranslateGroupJob implements ShouldQueue
         public readonly array $missingTexts,
         public readonly ?string $driver = null,
     ) {
-        $this->tries = config('ai-translation.queue.tries', 3);
-        $this->retryAfter = config('ai-translation.queue.retry_after', 60);
+        $this->tries = max(1, (int) config('ai-translation.queue.tries', 3));
+        $this->backoff = max(0, (int) config('ai-translation.queue.retry_after', 60));
     }
 
     /**
@@ -58,5 +59,18 @@ class TranslateGroupJob implements ShouldQueue
             missingTexts: $this->missingTexts,
             driver: $this->driver,
         );
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $e): void
+    {
+        Log::error('TranslateGroupJob failed', [
+            'locale' => $this->locale,
+            'group' => $this->group,
+            'driver' => $this->driver,
+            'exception' => $e,
+        ]);
     }
 }
