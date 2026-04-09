@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation\Drivers;
 
+use Illuminate\Support\Str;
 use Laravel\Ai\Enums\Lab;
 use Statikbe\AiTranslation\Agents\TranslationAgent;
 use Statikbe\AiTranslation\Contracts\TranslationDriver;
@@ -34,9 +35,10 @@ class LaravelAiDriver implements TranslationDriver
 
     public function translate(string $text, string $from, string $to, array $options = []): string
     {
-        $results = $this->translateBatch(['__single__' => $text], $from, $to, $options);
+        $key = Str::uuid()->toString();
+        $results = $this->translateBatch([$key => $text], $from, $to, $options);
 
-        return $results['__single__'] ?? '';
+        return $results[$key] ?? '';
     }
 
     public function translateBatch(array $texts, string $from, string $to, array $options = []): array
