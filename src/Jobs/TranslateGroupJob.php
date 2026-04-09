@@ -44,8 +44,8 @@ class TranslateGroupJob implements ShouldQueue
         public readonly array $missingTexts,
         public readonly ?string $driver = null,
     ) {
-        $this->tries = config('ai-translation.queue.tries', 3);
-        $this->backoff = config('ai-translation.queue.retry_after', 60);
+        $this->tries = max(1, (int) config('ai-translation.queue.tries', 3));
+        $this->backoff = max(0, (int) config('ai-translation.queue.retry_after', 60));
     }
 
     /**
@@ -70,7 +70,7 @@ class TranslateGroupJob implements ShouldQueue
             'locale' => $this->locale,
             'group' => $this->group,
             'driver' => $this->driver,
-            'error' => $e->getMessage(),
+            'exception' => $e,
         ]);
     }
 }
