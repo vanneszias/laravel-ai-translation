@@ -23,7 +23,7 @@ class TranslateMissingCommand extends Command
         {locale : The target locale to translate into (e.g. nl, fr, de)}
         {--group=* : Limit translation to specific groups (can be repeated)}
         {--driver= : Override the default translation driver}
-        {--sync : Run synchronously instead of queueing jobs}
+        {--sync : Run synchronously (default when ai-translation.queue.enabled is false)}
         {--dry-run : Show what would be translated without actually translating}
         {--source= : Override the source locale (default: ai-translation.source_locale)}';
 
