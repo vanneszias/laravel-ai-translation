@@ -49,12 +49,7 @@ class TranslateMissingCommand extends Command
             return self::FAILURE;
         }
 
-        $manager = app(\Statikbe\LaravelChainedTranslator\ChainedTranslationManager::class);
-        $allGroups = $manager->getTranslationGroups();
-
-        if ($groups !== []) {
-            $allGroups = array_values(array_intersect($allGroups, $groups));
-        }
+        $allGroups = $service->resolveGroups($locale, $groups);
 
         if ($allGroups === []) {
             $this->warn('No translation groups found.');
@@ -74,7 +69,7 @@ class TranslateMissingCommand extends Command
         $totalTranslated = 0;
 
         foreach ($allGroups as $group) {
-            $missing = $service->getMissingTranslations($locale, $group);
+            $missing = $service->getMissingTranslations($locale, $group, $sourceLocale);
 
             if ($missing === []) {
                 $this->line("  <info>✓</info> {$group} — no missing keys");
@@ -95,13 +90,13 @@ class TranslateMissingCommand extends Command
             $this->line("  <comment>→</comment> {$group} — translating {$count} key(s)...");
 
             if (!$sync) {
-                $service->queueMissingForGroup(locale: $locale, group: $group, driver: $driver);
+                $service->queueMissingForGroup(locale: $locale, group: $group, driver: $driver, sourceLocale: $sourceLocale);
                 $this->line("    <info>✓</info> Queued {$count} key(s) for group '{$group}'");
                 $totalTranslated += $count;
                 continue;
             }
 
-            $result = $service->translateMissingForGroup(locale: $locale, group: $group, driver: $driver);
+            $result = $service->translateMissingForGroup(locale: $locale, group: $group, driver: $driver, sourceLocale: $sourceLocale);
             $translated = count(array_filter($result));
             $totalTranslated += $translated;
             $this->line("    <info>✓</info> Translated {$translated}/{$count} keys");
