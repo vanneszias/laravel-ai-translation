@@ -71,7 +71,7 @@ class AiTranslationService
         string $sourceText,
         ?string $driver = null,
     ): string {
-        $sourceLocale = config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale = config('ai-translation.source_locale');
         $systemPrompt = $this->manager->getSystemPromptForGroup($group);
 
         $translated = $this->manager->driver($driver)->translate(
@@ -204,7 +204,7 @@ class AiTranslationService
         array $missingTexts,
         ?string $driver = null,
     ): array {
-        $sourceLocale = config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale = config('ai-translation.source_locale');
         $systemPrompt = $this->manager->getSystemPromptForGroup($group);
 
         $translated = $this->manager->driver($driver)->translateBatch(
@@ -240,7 +240,7 @@ class AiTranslationService
         }
 
         $manager = $this->getChainedTranslationManager();
-        $sourceLocale = config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale = config('ai-translation.source_locale');
 
         $sourceTranslations = $manager->getTranslationsForGroup($sourceLocale, $group);
         $existingTranslations = $manager->getTranslationsForGroup($locale, $group);

@@ -36,7 +36,7 @@ class TranslateMissingCommand extends Command
         $driver = $this->option('driver');
         $sync = $this->option('sync') || !config('ai-translation.queue.enabled', true);
         $dryRun = $this->option('dry-run');
-        $sourceLocale = $this->option('source') ?? config('ai-translation.source_locale', config('app.locale', 'en'));
+        $sourceLocale = $this->option('source') ?? config('ai-translation.source_locale');
 
         if ($dryRun) {
             $this->warn('[DRY RUN] No translations will be saved.');
