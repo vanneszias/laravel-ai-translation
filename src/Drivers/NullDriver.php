@@ -14,12 +14,12 @@ class NullDriver implements TranslationDriver
 {
     public function translate(string $text, string $from, string $to, array $options = []): string
     {
-        return '';
+        return $text;
     }
 
     public function translateBatch(array $texts, string $from, string $to, array $options = []): array
     {
-        return array_map(static fn() => '', $texts);
+        return $texts;
     }
 
     public function getName(): string

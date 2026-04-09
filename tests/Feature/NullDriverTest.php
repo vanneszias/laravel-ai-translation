@@ -12,16 +12,16 @@ it('resolves the null driver', function () {
     expect($driver)->toBeInstanceOf(NullDriver::class);
 });
 
-it('null driver returns empty string for single translation', function () {
+it('null driver returns the input string unchanged for single translation', function () {
     $manager = app(AiTranslationManager::class);
     $result = $manager->translate('Hello', 'en', 'nl', [], 'null');
 
-    expect($result)->toBeEmpty();
+    expect($result)->toBe('Hello');
 });
 
-it('null driver returns empty strings for batch translation', function () {
+it('null driver returns the input strings unchanged for batch translation', function () {
     $manager = app(AiTranslationManager::class);
     $result = $manager->translateBatch(['greeting' => 'Hello', 'farewell' => 'Goodbye'], 'en', 'nl', [], 'null');
 
-    expect($result)->toBe(['greeting' => '', 'farewell' => '']);
+    expect($result)->toBe(['greeting' => 'Hello', 'farewell' => 'Goodbye']);
 });
