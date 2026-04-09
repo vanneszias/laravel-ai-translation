@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Statikbe\AiTranslation;
 
 use Illuminate\Support\Manager;
-use InvalidArgumentException;
 use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
+use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 use Statikbe\AiTranslation\Drivers\LaravelAiDriver;
 use Statikbe\AiTranslation\Drivers\LibreTranslateDriver;
 use Statikbe\AiTranslation\Drivers\NullDriver;
@@ -39,8 +39,10 @@ class AiTranslationManager extends Manager
         $systemPrompt = $this->resolveSystemPrompt();
 
         if (!interface_exists(\Laravel\Ai\Contracts\Agent::class)) {
-            throw new InvalidArgumentException('The laravel_ai translation driver requires the laravel/ai package. '
-            . 'Install it with: composer require laravel/ai');
+            throw new TranslationDriverException(
+                'The laravel_ai translation driver requires the laravel/ai package. '
+                . 'Install it with: composer require laravel/ai',
+            );
         }
 
         return new LaravelAiDriver($config, $systemPrompt);
