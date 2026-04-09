@@ -72,6 +72,9 @@ class AiTranslationManager extends Manager
 
     /**
      * Resolve the global system prompt from config, with optional per-group override.
+     *
+     * A group override can be a plain string (appended to the global prompt) or an
+     * array with 'prompt' and 'replace' => true keys (replaces the global prompt entirely).
      */
     protected function resolveSystemPrompt(?string $group = null): string
     {
@@ -82,7 +85,15 @@ class AiTranslationManager extends Manager
 
         if ($group !== null) {
             $groupOverride = $this->config->get("ai-translation.prompts.group_overrides.{$group}");
-            if ($groupOverride) {
+
+            if (is_array($groupOverride)) {
+                $overrideText = $groupOverride['prompt'] ?? '';
+                $replace = (bool) ($groupOverride['replace'] ?? false);
+
+                if ($overrideText !== '') {
+                    return $replace ? $overrideText : $globalPrompt . "\n\n" . $overrideText;
+                }
+            } elseif (is_string($groupOverride) && $groupOverride !== '') {
                 return $globalPrompt . "\n\n" . $groupOverride;
             }
         }
