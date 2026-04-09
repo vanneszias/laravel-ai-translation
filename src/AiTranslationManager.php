@@ -6,7 +6,7 @@ namespace Statikbe\AiTranslation;
 
 use Illuminate\Support\Manager;
 use InvalidArgumentException;
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
 use Statikbe\AiTranslation\Drivers\LaravelAiDriver;
 use Statikbe\AiTranslation\Drivers\LibreTranslateDriver;
 use Statikbe\AiTranslation\Drivers\NullDriver;
@@ -33,7 +33,7 @@ class AiTranslationManager extends Manager
     /**
      * Create the laravel_ai driver (requires laravel/ai).
      */
-    protected function createLaravelAiDriver(): TranslationDriver
+    protected function createLaravelAiDriver(): AiTranslationDriver
     {
         $config = $this->config->get('ai-translation.drivers.laravel_ai', []);
         $systemPrompt = $this->resolveSystemPrompt();
@@ -49,7 +49,7 @@ class AiTranslationManager extends Manager
     /**
      * Create the libretranslate driver.
      */
-    protected function createLibretranslateDriver(): TranslationDriver
+    protected function createLibretranslateDriver(): AiTranslationDriver
     {
         $config = $this->config->get('ai-translation.drivers.libretranslate', []);
 
@@ -63,7 +63,7 @@ class AiTranslationManager extends Manager
     /**
      * Create the null driver (testing / no-op).
      */
-    protected function createNullDriver(): TranslationDriver
+    protected function createNullDriver(): AiTranslationDriver
     {
         return new NullDriver();
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation\Contracts;
 
-interface TranslationDriver
+interface AiTranslationDriver
 {
     /**
      * Translate a single string.
@@ -34,5 +34,5 @@ interface TranslationDriver
     /**
      * Return the driver's identifier name.
      */
-    public function getName(): string;
+    public static function getName(): string;
 }

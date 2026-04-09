@@ -7,7 +7,7 @@ namespace Statikbe\AiTranslation\Drivers;
 use Illuminate\Support\Str;
 use Laravel\Ai\Enums\Lab;
 use Statikbe\AiTranslation\Agents\TranslationAgent;
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
 use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 
 /**
@@ -22,7 +22,7 @@ use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
  *
  * @requires laravel/ai ^0.3
  */
-class LaravelAiDriver implements TranslationDriver
+class LaravelAiDriver implements AiTranslationDriver
 {
     protected Lab|string $provider;
 
@@ -78,7 +78,7 @@ class LaravelAiDriver implements TranslationDriver
         }
     }
 
-    public function getName(): string
+    public static function getName(): string
     {
         return 'laravel_ai';
     }

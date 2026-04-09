@@ -7,7 +7,7 @@ namespace Statikbe\AiTranslation\Drivers;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use SensitiveParameter;
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
 use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 
 /**
@@ -18,7 +18,7 @@ use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
  *
  * @see https://docs.libretranslate.com
  */
-class LibreTranslateDriver implements TranslationDriver
+class LibreTranslateDriver implements AiTranslationDriver
 {
     public function __construct(
         protected string $url,
@@ -61,7 +61,7 @@ class LibreTranslateDriver implements TranslationDriver
         return $results;
     }
 
-    public function getName(): string
+    public static function getName(): string
     {
         return 'libretranslate';
     }

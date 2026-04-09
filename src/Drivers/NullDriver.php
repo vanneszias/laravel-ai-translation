@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation\Drivers;
 
-use Statikbe\AiTranslation\Contracts\TranslationDriver;
+use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
 
 /**
  * No-op driver — returns empty strings for all translations.
  * Useful for testing or as a placeholder when no provider is configured.
  */
-class NullDriver implements TranslationDriver
+class NullDriver implements AiTranslationDriver
 {
     public function translate(string $text, string $from, string $to, array $options = []): string
     {
@@ -22,7 +22,7 @@ class NullDriver implements TranslationDriver
         return $texts;
     }
 
-    public function getName(): string
+    public static function getName(): string
     {
         return 'null';
     }
