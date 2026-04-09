@@ -78,10 +78,8 @@ class AiTranslationManager extends Manager
      */
     protected function resolveSystemPrompt(?string $group = null): string
     {
-        $globalPrompt = $this->config->get(
-            'ai-translation.prompts.system',
-            'You are an expert software UI translator. Preserve all placeholders and HTML tags. Return valid JSON.',
-        );
+        $globalPrompt = $this->config->get('ai-translation.prompts.system')
+            ?? trim(view('ai-translation::prompts.system')->render());
 
         if ($group !== null) {
             $groupOverride = $this->config->get("ai-translation.prompts.group_overrides.{$group}");
