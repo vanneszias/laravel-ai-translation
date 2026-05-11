@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Manager;
 use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
-use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 use Statikbe\AiTranslation\Drivers\LaravelAiDriver;
 use Statikbe\AiTranslation\Drivers\LibreTranslateDriver;
 use Statikbe\AiTranslation\Drivers\NullDriver;
+use Statikbe\AiTranslation\Exceptions\TranslationDriverException;
 
 /**
  * Translation Driver Manager.
@@ -27,7 +28,25 @@ class AiTranslationManager extends Manager
      */
     public function getDefaultDriver(): string
     {
-        return $this->config->get('ai-translation.default_driver', 'null');
+        return Config::string('ai-translation.default_driver', 'null');
+    }
+
+    /**
+     * Resolve a translation driver instance.
+     *
+     * @param  string|null  $driver
+     */
+    public function driver($driver = null): AiTranslationDriver
+    {
+        $resolved = parent::driver($driver);
+
+        if (!$resolved instanceof AiTranslationDriver) {
+            throw new TranslationDriverException(
+                'The resolved translation driver must implement ' . AiTranslationDriver::class . '.',
+            );
+        }
+
+        return $resolved;
     }
 
     /**
@@ -35,17 +54,15 @@ class AiTranslationManager extends Manager
      */
     protected function createLaravelAiDriver(): AiTranslationDriver
     {
-        $config = $this->config->get('ai-translation.drivers.laravel_ai', []);
-        $systemPrompt = $this->resolveSystemPrompt();
-
         if (!interface_exists(\Laravel\Ai\Contracts\Agent::class)) {
-            throw new TranslationDriverException(
-                'The laravel_ai translation driver requires the laravel/ai package. '
-                . 'Install it with: composer require laravel/ai',
-            );
+            throw new TranslationDriverException('The laravel_ai translation driver requires the laravel/ai package. '
+            . 'Install it with: composer require laravel/ai');
         }
 
-        return new LaravelAiDriver($config, $systemPrompt);
+        return new LaravelAiDriver(
+            Config::array('ai-translation.drivers.laravel_ai', []),
+            $this->resolveSystemPrompt(),
+        );
     }
 
     /**
@@ -53,12 +70,16 @@ class AiTranslationManager extends Manager
      */
     protected function createLibretranslateDriver(): AiTranslationDriver
     {
-        $config = $this->config->get('ai-translation.drivers.libretranslate', []);
+        $config = Config::array('ai-translation.drivers.libretranslate', []);
+
+        $url = $config['url'] ?? null;
+        $apiKey = $config['api_key'] ?? null;
+        $timeout = $config['timeout'] ?? null;
 
         return new LibreTranslateDriver(
-            url: rtrim($config['url'] ?? 'https://libretranslate.com', '/'),
-            apiKey: $config['api_key'] ?? '',
-            timeout: $config['timeout'] ?? 30,
+            url: rtrim(is_string($url) ? $url : 'https://libretranslate.com', '/'),
+            apiKey: is_string($apiKey) ? $apiKey : '',
+            timeout: is_int($timeout) ? $timeout : 30,
         );
     }
 
@@ -78,21 +99,29 @@ class AiTranslationManager extends Manager
      */
     protected function resolveSystemPrompt(?string $group = null): string
     {
-        $globalPrompt = $this->config->get('ai-translation.prompts.system')
-            ?? trim(view('ai-translation::prompts.system')->render());
+        $globalPrompt = Config::get('ai-translation.prompts.system');
 
-        if ($group !== null) {
-            $groupOverride = $this->config->get("ai-translation.prompts.group_overrides.{$group}");
+        if (!is_string($globalPrompt) || $globalPrompt === '') {
+            $globalPrompt = trim(view('ai-translation::prompts.system')->render());
+        }
 
-            if (is_array($groupOverride)) {
-                $overrideText = $groupOverride['prompt'] ?? '';
-                $replace = (bool) ($groupOverride['replace'] ?? false);
+        if ($group === null) {
+            return $globalPrompt;
+        }
 
-                if ($overrideText !== '') {
-                    return $replace ? $overrideText : $globalPrompt . "\n\n" . $overrideText;
-                }
-            } elseif (is_string($groupOverride) && $groupOverride !== '') {
-                return $globalPrompt . "\n\n" . $groupOverride;
+        $groupOverride = Config::get("ai-translation.prompts.group_overrides.{$group}");
+
+        if (is_string($groupOverride) && $groupOverride !== '') {
+            return $globalPrompt . "\n\n" . $groupOverride;
+        }
+
+        if (is_array($groupOverride)) {
+            $overrideText = $groupOverride['prompt'] ?? null;
+            $overrideText = is_string($overrideText) ? $overrideText : '';
+            $replace = ($groupOverride['replace'] ?? null) === true;
+
+            if ($overrideText !== '') {
+                return $replace ? $overrideText : $globalPrompt . "\n\n" . $overrideText;
             }
         }
 
@@ -110,6 +139,8 @@ class AiTranslationManager extends Manager
 
     /**
      * Translate a single string using the default (or specified) driver.
+     *
+     * @param  array<string, mixed>  $options
      */
     public function translate(
         string $text,
@@ -125,6 +156,7 @@ class AiTranslationManager extends Manager
      * Translate a batch of strings using the default (or specified) driver.
      *
      * @param  array<string, string>  $texts
+     * @param  array<string, mixed>  $options
      * @return array<string, string>
      */
     public function translateBatch(

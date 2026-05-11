@@ -24,10 +24,10 @@ class TranslationAgent implements Agent, HasStructuredOutput
     use Promptable;
 
     /**
-     * @param  string               $systemPrompt  The configured system prompt for this translation.
-     * @param  array<string,string> $keys          The translation keys we expect back (for schema building).
-     * @param  string               $from          Source locale.
-     * @param  string               $to            Target locale.
+     * @param  string        $systemPrompt  The configured system prompt for this translation.
+     * @param  list<string>  $keys          The translation keys we expect back (for schema building).
+     * @param  string        $from          Source locale.
+     * @param  string        $to            Target locale.
      */
     public function __construct(
         protected string $systemPrompt,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation;
 
+use Illuminate\Support\Facades\Config;
 use RuntimeException;
 use Statikbe\AiTranslation\Jobs\TranslateGroupJob;
 
@@ -71,7 +72,7 @@ class AiTranslationService
         string $sourceText,
         ?string $driver = null,
     ): string {
-        $sourceLocale = config('ai-translation.source_locale');
+        $sourceLocale = $this->defaultSourceLocale();
         $systemPrompt = $this->manager->getSystemPromptForGroup($group);
 
         $translated = $this->manager->driver($driver)->translate(
@@ -97,17 +98,23 @@ class AiTranslationService
      * @param  string       $group   Translation group.
      * @param  string|null  $driver  Optional driver override.
      */
-    public function queueMissingForGroup(string $locale, string $group, ?string $driver = null, ?string $sourceLocale = null): void
-    {
+    public function queueMissingForGroup(
+        string $locale,
+        string $group,
+        ?string $driver = null,
+        ?string $sourceLocale = null,
+    ): void {
         $missingTexts = $this->getMissingTranslations($locale, $group, $sourceLocale);
 
         if ($missingTexts === []) {
             return;
         }
 
+        $connection = Config::get('ai-translation.queue.connection');
+
         TranslateGroupJob::dispatch($locale, $group, $missingTexts, $driver)
-            ->onConnection(config('ai-translation.queue.connection'))
-            ->onQueue(config('ai-translation.queue.queue_name', 'translations'));
+            ->onConnection(is_string($connection) ? $connection : null)
+            ->onQueue(Config::string('ai-translation.queue.queue_name', 'translations'));
     }
 
     /**
@@ -120,8 +127,12 @@ class AiTranslationService
      * @param  string|null  $driver  Optional driver override.
      * @return array<string, string> The translated key => value map.
      */
-    public function translateMissingForGroup(string $locale, string $group, ?string $driver = null, ?string $sourceLocale = null): array
-    {
+    public function translateMissingForGroup(
+        string $locale,
+        string $group,
+        ?string $driver = null,
+        ?string $sourceLocale = null,
+    ): array {
         $missingTexts = $this->getMissingTranslations($locale, $group, $sourceLocale);
 
         if ($missingTexts === []) {
@@ -140,8 +151,12 @@ class AiTranslationService
      * @param  array        $groups   Limit to specific groups (empty = all groups).
      * @param  string|null  $driver   Optional driver override.
      */
-    public function queueMissingForLocale(string $locale, array $groups = [], ?string $driver = null, ?string $sourceLocale = null): void
-    {
+    public function queueMissingForLocale(
+        string $locale,
+        array $groups = [],
+        ?string $driver = null,
+        ?string $sourceLocale = null,
+    ): void {
         foreach ($this->resolveGroups($locale, $groups) as $group) {
             $this->queueMissingForGroup($locale, $group, $driver, $sourceLocale);
         }
@@ -156,8 +171,12 @@ class AiTranslationService
      * @param  array        $groups   Limit to specific groups (empty = all groups).
      * @param  string|null  $driver   Optional driver override.
      */
-    public function translateMissingForLocale(string $locale, array $groups = [], ?string $driver = null, ?string $sourceLocale = null): void
-    {
+    public function translateMissingForLocale(
+        string $locale,
+        array $groups = [],
+        ?string $driver = null,
+        ?string $sourceLocale = null,
+    ): void {
         foreach ($this->resolveGroups($locale, $groups) as $group) {
             $this->translateMissingForGroup($locale, $group, $driver, $sourceLocale);
         }
@@ -166,8 +185,8 @@ class AiTranslationService
     /**
      * Resolve and filter the translation groups for a locale operation.
      *
-     * @param  array  $filterGroups  Limit to specific groups (empty = all groups).
-     * @return array<string>
+     * @param  array<array-key, mixed>  $filterGroups  Limit to specific groups (empty = all groups).
+     * @return list<string>
      */
     public function resolveGroups(string $locale, array $filterGroups = []): array
     {
@@ -178,11 +197,16 @@ class AiTranslationService
             );
         }
 
-        $allGroups = $this->getChainedTranslationManager()->getTranslationGroups();
+        $allGroups = array_values(array_filter(
+            $this->getChainedTranslationManager()->getTranslationGroups(),
+            'is_string',
+        ));
 
         if ($filterGroups === []) {
             return $allGroups;
         }
+
+        $filterGroups = array_filter($filterGroups, 'is_string');
 
         return array_values(array_intersect($allGroups, $filterGroups));
     }
@@ -205,7 +229,7 @@ class AiTranslationService
         ?string $driver = null,
         ?string $sourceLocale = null,
     ): array {
-        $sourceLocale ??= config('ai-translation.source_locale');
+        $sourceLocale ??= $this->defaultSourceLocale();
         $systemPrompt = $this->manager->getSystemPromptForGroup($group);
 
         $translated = $this->manager->driver($driver)->translateBatch(
@@ -241,13 +265,17 @@ class AiTranslationService
         }
 
         $manager = $this->getChainedTranslationManager();
-        $sourceLocale ??= config('ai-translation.source_locale');
+        $sourceLocale ??= $this->defaultSourceLocale();
 
         $sourceTranslations = $manager->getTranslationsForGroup($sourceLocale, $group);
         $existingTranslations = $manager->getTranslationsForGroup($locale, $group);
 
         $missing = [];
         foreach ($sourceTranslations as $key => $value) {
+            if (!is_string($value)) {
+                continue;
+            }
+
             $existing = $existingTranslations[$key] ?? null;
 
             if ($existing !== null && $existing !== '') {
@@ -258,6 +286,14 @@ class AiTranslationService
         }
 
         return $missing;
+    }
+
+    /**
+     * The configured source locale, falling back to the application locale or 'en'.
+     */
+    protected function defaultSourceLocale(): string
+    {
+        return Config::string('ai-translation.source_locale', 'en');
     }
 
     /**

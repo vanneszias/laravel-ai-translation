@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Statikbe\AiTranslation\Drivers;
 
-use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use SensitiveParameter;
 use Statikbe\AiTranslation\Contracts\AiTranslationDriver;
@@ -34,17 +34,19 @@ class LibreTranslateDriver implements AiTranslationDriver
                 $this->url . '/translate',
                 $this->buildPayload($text, $from, $to),
             );
-
-            if ($response->failed()) {
-                throw new TranslationDriverException(
-                    "LibreTranslate API returned HTTP {$response->status()}: {$response->body()}",
-                );
-            }
-
-            return $response->json('translatedText', '');
-        } catch (RequestException $e) {
+        } catch (ConnectionException $e) {
             throw new TranslationDriverException("LibreTranslate request failed: {$e->getMessage()}", previous: $e);
         }
+
+        if ($response->failed()) {
+            throw new TranslationDriverException(
+                "LibreTranslate API returned HTTP {$response->status()}: {$response->body()}",
+            );
+        }
+
+        $translated = $response->json('translatedText', '');
+
+        return is_string($translated) ? $translated : '';
     }
 
     public function translateBatch(array $texts, string $from, string $to, array $options = []): array

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Statikbe\AiTranslation\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Config;
 use Statikbe\AiTranslation\AiTranslationService;
 
 /**
@@ -31,12 +32,17 @@ class TranslateMissingCommand extends Command
 
     public function handle(AiTranslationService $service): int
     {
-        $locale = $this->argument('locale');
-        $groups = $this->option('group') ?? [];
-        $driver = $this->option('driver');
-        $sync = $this->option('sync') || !config('ai-translation.queue.enabled', true);
-        $dryRun = $this->option('dry-run');
-        $sourceLocale = $this->option('source') ?? config('ai-translation.source_locale');
+        $locale = $this->stringArgument('locale');
+        $groupOption = $this->option('group');
+        $groups = is_array($groupOption) ? array_values(array_filter($groupOption, 'is_string')) : [];
+        $driver = $this->stringOption('driver');
+        $sourceOption = $this->stringOption('source');
+        $sourceLocale =
+            $sourceOption !== null && $sourceOption !== ''
+                ? $sourceOption
+                : Config::string('ai-translation.source_locale', 'en');
+        $sync = $this->option('sync') === true || config('ai-translation.queue.enabled', true) === false;
+        $dryRun = $this->option('dry-run') === true;
 
         if ($dryRun) {
             $this->warn('[DRY RUN] No translations will be saved.');
@@ -60,7 +66,9 @@ class TranslateMissingCommand extends Command
         $this->info("Translating missing keys for locale: <comment>{$locale}</comment>");
         $this->info("Source locale: <comment>{$sourceLocale}</comment>");
         $this->info(
-            'Driver: <comment>' . ($driver ?? config('ai-translation.default_driver', 'laravel_ai')) . '</comment>',
+            'Driver: <comment>'
+            . ($driver ?? Config::string('ai-translation.default_driver', 'laravel_ai'))
+            . '</comment>',
         );
         $this->info('Mode: <comment>' . ($sync ? 'synchronous' : 'queued') . '</comment>');
         $this->newLine();
@@ -90,13 +98,23 @@ class TranslateMissingCommand extends Command
             $this->line("  <comment>→</comment> {$group} — translating {$count} key(s)...");
 
             if (!$sync) {
-                $service->queueMissingForGroup(locale: $locale, group: $group, driver: $driver, sourceLocale: $sourceLocale);
+                $service->queueMissingForGroup(
+                    locale: $locale,
+                    group: $group,
+                    driver: $driver,
+                    sourceLocale: $sourceLocale,
+                );
                 $this->line("    <info>✓</info> Queued {$count} key(s) for group '{$group}'");
                 $totalTranslated += $count;
                 continue;
             }
 
-            $result = $service->translateMissingForGroup(locale: $locale, group: $group, driver: $driver, sourceLocale: $sourceLocale);
+            $result = $service->translateMissingForGroup(
+                locale: $locale,
+                group: $group,
+                driver: $driver,
+                sourceLocale: $sourceLocale,
+            );
             $translated = count(array_filter($result));
             $totalTranslated += $translated;
             $this->line("    <info>✓</info> Translated {$translated}/{$count} keys");
@@ -123,5 +141,19 @@ class TranslateMissingCommand extends Command
         $this->info("Done: {$totalTranslated} key(s) queued for translation.");
 
         return self::SUCCESS;
+    }
+
+    private function stringArgument(string $name): string
+    {
+        $value = $this->argument($name);
+
+        return is_string($value) ? $value : '';
+    }
+
+    private function stringOption(string $name): ?string
+    {
+        $value = $this->option($name);
+
+        return is_string($value) ? $value : null;
     }
 }

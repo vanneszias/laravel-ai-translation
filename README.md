@@ -30,7 +30,7 @@ php artisan vendor:publish --tag=ai-translation-views
 
 ## Drivers
 
-### laravel_ai (LLM — recommended)
+### laravel-ai (LLM — recommended)
 
 Requires `laravel/ai`:
 

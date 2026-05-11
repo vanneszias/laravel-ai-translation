@@ -16,7 +16,7 @@ it('null driver returns an empty string for single translation', function () {
     $manager = app(AiTranslationManager::class);
     $result = $manager->translate('Hello', 'en', 'nl', [], 'null');
 
-    expect($result)->toBe('');
+    expect($result)->toBeEmpty();
 });
 
 it('null driver returns empty strings for batch translation', function () {

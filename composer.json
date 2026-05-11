@@ -24,10 +24,12 @@
         "spatie/laravel-package-tools": "^1.16"
     },
     "require-dev": {
+        "carthage-software/mago": "^1.13",
         "laravel/ai": "^0.3",
         "orchestra/testbench": "^9.0|^10.0",
         "pestphp/pest": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "statikbe/laravel-chained-translator": "^2.4"
     },
     "suggest": {
         "laravel/ai": "Required for the laravel_ai driver (LLM-based translation via OpenAI, Anthropic, Gemini, etc.)",
@@ -55,7 +57,10 @@
     },
     "scripts": {
         "test": "pest",
-        "test-coverage": "pest --coverage"
+        "test-coverage": "pest --coverage",
+        "lint": "mago lint",
+        "analyse": "mago analyze",
+        "format": "mago fmt"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
