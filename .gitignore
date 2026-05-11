@@ -2,4 +2,7 @@
 /node_modules/
 .env
 .phpunit.result.cache
+phpstan.neon
 coverage/
+/.idea
+/.claude/settings.local.json

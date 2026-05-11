@@ -10,7 +10,7 @@ use Statikbe\AiTranslation\AiTranslationManager;
 /**
  * @method static string translate(string $text, string $from, string $to, array $options = [], ?string $driverName = null)
  * @method static array  translateBatch(array $texts, string $from, string $to, array $options = [], ?string $driverName = null)
- * @method static \Statikbe\AiTranslation\Contracts\TranslationDriver driver(?string $driver = null)
+ * @method static \Statikbe\AiTranslation\Contracts\AiTranslationDriver driver(?string $driver = null)
  * @method static string getSystemPromptForGroup(string $group)
  *
  * @see \Statikbe\AiTranslation\AiTranslationManager

@@ -1,0 +1,19 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - src
+
+    level: 5
+
+    ignoreErrors:
+        # statikbe/laravel-chained-translator is an optional (suggested) dependency,
+        # so its classes are not guaranteed to be present during static analysis.
+        - identifier: class.notFound
+          path: src/AiTranslationService.php
+        # The package view namespace is registered at runtime by the service provider;
+        # PHPStan does not see it, so the literal is reported as a plain string.
+        - identifier: argument.type
+          path: src/AiTranslationManager.php
+          message: '#expects view-string\|null, string given#'
