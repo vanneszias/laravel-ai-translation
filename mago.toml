@@ -40,3 +40,9 @@ strict-list-index-checks = false
 no-boolean-literal-comparison = false
 check-missing-type-hints = false
 register-super-globals = true
+# `mixed-assignment` is noisy against Laravel APIs that return `mixed` (config(),
+# array access on untyped arrays, Response::json(), Command::option(), ...). Every
+# such value here is narrowed with an explicit is_*() check before use, and the
+# analyzer still reports any unsafe *use* of a mixed value (mixed-argument,
+# mixed-operand, mixed-method-access, mixed-return-statement).
+ignore = ["mixed-assignment"]
