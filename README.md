@@ -46,6 +46,12 @@ AI_TRANSLATION_PROVIDER=openai   # openai | anthropic | gemini | ollama | …
 AI_TRANSLATION_MODEL=gpt-4o
 ```
 
+Set the provider API key expected by `laravel/ai` (see `.env.example`):
+
+```env
+OPENAI_API_KEY=your-key
+```
+
 ### libretranslate (open-source machine translation)
 
 ```env
@@ -57,6 +63,54 @@ LIBRETRANSLATE_API_KEY=your-key
 ### null (testing / no-op)
 
 Returns the input string unchanged. Useful in tests or when no provider is configured.
+
+---
+
+## Getting started
+
+1) Install the package and publish the config.
+
+```bash
+composer require statikbe/laravel-ai-translation
+php artisan vendor:publish --tag=ai-translation-config
+```
+
+2) Choose a driver and provider in your `.env`.
+
+```env
+AI_TRANSLATION_DRIVER=laravel_ai
+AI_TRANSLATION_PROVIDER=openai
+```
+
+3) Set the matching API key for your provider.
+
+```env
+OPENAI_API_KEY=your-key
+```
+
+Alternative provider keys (from `.env.example`):
+
+```env
+ANTHROPIC_API_KEY=your-key
+GEMINI_API_KEY=your-key
+GROQ_API_KEY=your-key
+MISTRAL_API_KEY=your-key
+DEEPSEEK_API_KEY=your-key
+XAI_API_KEY=your-key
+AZURE_OPENAI_API_KEY=your-key
+OLLAMA_API_KEY=optional
+PERPLEXITY_API_KEY=your-key
+OPENROUTER_API_KEY=your-key
+VOYAGEAI_API_KEY=your-key
+```
+
+4) Run a translation.
+
+```bash
+php artisan ai-translation:translate nl
+```
+
+If you use queues, remember to restart workers after changing env/config.
 
 ---
 
